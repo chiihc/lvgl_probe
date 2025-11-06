@@ -8,69 +8,12 @@
 #include "usart.h"
 #include "tmp102.h"
 #include "ads1115.h"
+#include "send_data.h"
 
 #define ADS1115_ADDR 0x48
 #define STORAGE_NAMESPACE "storage"
 
-typedef struct
-{
-    float temperature;
-    float light_intensity;
-} probe_data_t;
 
-static uint8_t calc_checksum(const uint8_t *data, uint8_t len) //
-{
-    uint8_t cs = 0;
-    for (int i = 0; i < len; i++)
-        cs ^= data[i];
-    return cs;
-}
-
-void uart_send_probe_data(float temp, float light)
-{
-    uint8_t frame[1 + 1 + 1 + 8 + 1];
-    uint8_t idx = 0;
-
-    frame[idx++] = 0xAA;  // Header
-    frame[idx++] = 1 + 8; // Length = Cmd + Payload
-    frame[idx++] = 0x01;  // Cmd: DATA
-
-    memcpy(&frame[idx], &temp, 4);
-    idx += 4;
-    memcpy(&frame[idx], &light, 4);
-    idx += 4;
-
-    uint8_t checksum = calc_checksum(frame, idx);
-    frame[idx++] = checksum;
-
-    uart_write_bytes(USART_UX, frame, idx);
-    ESP_LOGI("TMP102", "Temperature = %.2f °C Volt = %.2f V", temp, light);
-    // printf("Temperature = %.2f °C Volt = %.2f V", temp, light);
-}
-
-// 从dev_addr设备读取len个字节数据, 存储到data数组中, 从mem_addr地址开始读取
-esp_err_t read_bytes(uint8_t dev_addr, uint8_t mem_addr, uint8_t *data, size_t len)
-{
-
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create(); // 创建命令链接
-
-    // Step 1: 写入目标地址
-    i2c_master_start(cmd);                                                // 发送起始条件
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true); // 发送设备地址+写位
-    i2c_master_write_byte(cmd, mem_addr, true);                           // 发送内存地址
-
-    // Step 2: 重新开始读操作
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
-    if (len > 1)
-        i2c_master_read(cmd, data, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, data + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-
-    esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(cmd);
-    return ret;
-}
 
 static unsigned char day;
 static unsigned char month;
@@ -191,8 +134,8 @@ void app_main(void)
     {
         float temperature = tmp102_read_temperature();
         float volt = ads1115_get_voltage(&ads);
-        // ESP_LOGI("TMP102", "Temperature = %.2f °C Volt = %.2f V", temperature, volt);
-        uart_send_probe_data(temperature, volt);
+        ESP_LOGI("TMP102", "Temperature = %.2f °C Volt = %.2f V", temperature, volt);
+        // send_probe_data(temperature, volt);
         vTaskDelay(200);
     }
 }

@@ -1,6 +1,7 @@
 #include "iic.h"
 #include "tmp102.h"
 
+
 float tmp102_read_temperature(void)
 {
     uint8_t buf[2];
