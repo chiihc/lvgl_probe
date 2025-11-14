@@ -2,13 +2,15 @@ set(src_dirs
             LED
             IIC
             USART
-            ads1115)
+            ads1115
+            ADC)
 
 set(include_dirs
             LED
             IIC
             USART
-            ads1115)
+            ads1115
+            ADC)
 
 set(requires
             driver)

@@ -1,10 +1,10 @@
 /**
  ****************************************************************************************************
- * @file        usart.h
+ * @file        adc1.h
  * @author      正点原子团队(ALIENTEK)
  * @version     V1.0
  * @date        2023-08-26
- * @brief       串口初始化代码(一般是串口0)
+ * @brief       ADC驱动代码
  * @license     Copyright (c) 2020-2032, 广州市星翼电子科技有限公司
  ****************************************************************************************************
  * @attention
@@ -18,26 +18,23 @@
  ****************************************************************************************************
  */
 
-#ifndef _USART_H
-#define _USART_H
+#ifndef __ADC_H_
+#define __ADC_H_
 
-#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/uart.h"
-#include "driver/uart_select.h"
 #include "driver/gpio.h"
+#include "driver/adc.h"
+#include "esp_log.h"
+// #include "esp_adc/adc_oneshot.h"
+// #include "esp_adc/adc_cali.h"
+// #include "esp_adc/adc_cali_scheme.h"
 
 
-/* 引脚和串口定义 */
-#define USART_UX            UART_NUM_1
-#define USART_TX_GPIO_PIN   GPIO_NUM_1
-#define USART_RX_GPIO_PIN   GPIO_NUM_2
-
-/* 串口接收相关定义 */
-#define RX_BUF_SIZE         1024    /* 环形缓冲区大小 */
+#define ADC_ADCX_CHY   GPIO_NUM_6 // GPIO7  ADC通道选择
 
 /* 函数声明 */
-void usart_init(uint32_t baudrate); /* 初始化串口 */
+void adc_init(void);                                            /* 初始化ADC */
+uint32_t adc_get_result_average(uint32_t ch, uint32_t times);   /* 获取ADC转换且进行均值滤波后的结果 */
 
 #endif

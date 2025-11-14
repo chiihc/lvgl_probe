@@ -9,56 +9,14 @@
 #include "tmp102.h"
 #include "ads1115.h"
 #include "send_data.h"
+#include "adc1.h"
 
 #define ADS1115_ADDR 0x48
 #define STORAGE_NAMESPACE "storage"
 
-
-
 static unsigned char day;
 static unsigned char month;
 static unsigned short year;
-
-void date_init(void)
-{
-    day = 1;
-    month = 1;
-    year = 2025;
-} // 初始化日期
-
-/**
- * @brief 将日期保存到 NVS
- */
-static void save_date_to_nvs(void)
-{
-    nvs_handle_t my_handle;                                 // NVS 句柄
-    nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle); // 打开 NVS 命名空间
-
-    nvs_set_u16(my_handle, "year", year); // 保存年份
-    nvs_set_u8(my_handle, "month", month);
-    nvs_set_u8(my_handle, "day", day);
-    nvs_commit(my_handle); // 提交更改
-    nvs_close(my_handle);  // 关闭 NVS 句柄
-}
-
-/**
- * @brief 从 NVS 加载日期，如果失败则使用默认值并保存
- */
-void load_date_from_storage(nvs_handle_t my_handle)
-{
-
-    // 尝试读取日期
-    esp_err_t err_year = nvs_get_u16(my_handle, "year", &year);
-    esp_err_t err_month = nvs_get_u8(my_handle, "month", &month);
-    esp_err_t err_day = nvs_get_u8(my_handle, "day", &day);
-
-    if (err_year != ESP_OK || err_month != ESP_OK || err_day != ESP_OK)
-    {
-        // 读取失败，使用默认日期并保存
-        date_init();
-        save_date_to_nvs();
-    }
-}
 
 /**
  * @brief       程序入口
@@ -67,6 +25,7 @@ void load_date_from_storage(nvs_handle_t my_handle)
  */
 void app_main(void)
 {
+    
     esp_err_t ret;
 
     ret = nvs_flash_init(); /* 初始化NVS */
@@ -81,61 +40,88 @@ void app_main(void)
     iic_init(I2C_NUM_0); /* 初始化IIC0 */
     iic_init(I2C_NUM_1); /* 初始化IIC1 */
     usart_init(115200);  /* 初始化串口 */
+    adc_init();        /* 初始化ADC */
 
-    // 2. 配置 ADS1115
-    ads1115_t ads = ads1115_config(I2C_NUM_1, ADS1115_ADDR);
+    // // 2. 配置 ADS1115
+    // ads1115_t ads = ads1115_config(I2C_NUM_1, ADS1115_ADDR);
 
-    // 设置 PGA（量程）：±1.024V  → 适配 0~0.8V 输入
-    ads1115_set_pga(&ads, ADS1115_FSR_1_024); // = ±1.024V
+    // // 设置 PGA（量程）：±1.024V  → 适配 0~0.8V 输入
+    // ads1115_set_pga(&ads, ADS1115_FSR_1_024); // = ±1.024V
 
-    // 选择通道（A0）
-    // ads1115_set_mux(&ads, ADS1115_MUX_0_1);
-
-    // 设置为连续采样模式，数据速率 128 SPS（可改）
-    ads1115_set_mode(&ads, ADS1115_MODE_CONTINUOUS);
-    ads1115_set_sps(&ads, ADS1115_SPS_128);
+    // // 设置为连续采样模式，数据速率 128 SPS（可改）
+    // ads1115_set_mode(&ads, ADS1115_MODE_CONTINUOUS);
+    // ads1115_set_sps(&ads, ADS1115_SPS_128);
 
     nvs_handle_t my_handle = 0;
 
     nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle); // 打开 NVS 命名空间
 
-    load_date_from_storage(my_handle); // 2. 从 NVS 加载日期，如果不存在则使用默认值
+    load_date_from_storage(ret,my_handle); // 2. 从 NVS 加载日期，如果不存在则使用默认值
     nvs_close(my_handle);
 
-    for (int addr = 1; addr < 127; addr++)
-    {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_stop(cmd);
-        esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 50 / portTICK_PERIOD_MS);
-        i2c_cmd_link_delete(cmd);
-        if (ret == ESP_OK)
-        {
-            printf("Found device at 0x%02X I2C_NUM_0\n", addr);
-        }
-    }
+    // for (int addr = 1; addr < 127; addr++)
+    // {
+    //     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    //     i2c_master_start(cmd);
+    //     i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+    //     i2c_master_stop(cmd);
+    //     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 50 / portTICK_PERIOD_MS);
+    //     i2c_cmd_link_delete(cmd);
+    //     if (ret == ESP_OK)
+    //     {
+    //         printf("Found device at 0x%02X I2C_NUM_0\n", addr);
+    //     }
+    // }
 
-    for (int addr = 1; addr < 127; addr++)
-    {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_stop(cmd);
-        esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_1, cmd, 50 / portTICK_PERIOD_MS);
-        i2c_cmd_link_delete(cmd);
-        if (ret == ESP_OK)
-        {
-            printf("Found device at 0x%02X I2C_NUM_1\n", addr);
-        }
-    }
+    // for (int addr = 1; addr < 127; addr++)
+    // {
+    //     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    //     i2c_master_start(cmd);
+    //     i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+    //     i2c_master_stop(cmd);
+    //     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_1, cmd, 50 / portTICK_PERIOD_MS);
+    //     i2c_cmd_link_delete(cmd);
+    //     if (ret == ESP_OK)
+    //     {
+    //         printf("Found device at 0x%02X I2C_NUM_1\n", addr);
+    //     }
+    // }
 
     while (1)
     {
-        float temperature = tmp102_read_temperature();
-        float volt = ads1115_get_voltage(&ads);
-        ESP_LOGI("TMP102", "Temperature = %.2f °C Volt = %.2f V", temperature, volt);
-        // send_probe_data(temperature, volt);
-        vTaskDelay(200);
+        if (check_line_connected()) // 自定义函数：尝试发送心跳或握手帧 + 超时判断
+            current_state = PROBE_CONNECTED;
+        else
+            current_state = PROBE_DISCONNECTED;
+
+        // --- 2. 根据状态组合处理 ---
+        if (last_state == PROBE_DISCONNECTED && current_state == PROBE_CONNECTED)
+        {
+            // 之前没连，现在连上了
+            last_state = current_state;
+            send_handshake(); // 首次通信
+        }
+        else if (last_state == PROBE_CONNECTED && current_state == PROBE_DISCONNECTED)
+        {
+            // 之前连了，现在断开
+            last_state = current_state;
+        }
+        else if (last_state == PROBE_CONNECTED && current_state == PROBE_CONNECTED)
+        {
+            // 连续已连 → 发送周期数据
+            float temperature = tmp102_read_temperature();
+            float volt = 1;
+            uint16_t adcdata;
+            adcdata = adc_get_result_average(ADC_ADCX_CHY, 20);
+            volt = (float)adcdata * (3.3 / 4095);
+
+
+            // float volt = ads1115_get_voltage(&ads);
+            ESP_LOGI("TMP102", "Temperature = %.2f °C Volt = %.2f V", temperature, volt);
+            send_probe_data(temperature, volt);
+        }
+        // 未连 + 未连 → 什么都不做
+
+        vTaskDelay(500);
     }
 }
