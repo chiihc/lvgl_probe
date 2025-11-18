@@ -89,7 +89,7 @@ void send_heartbeat()
 bool check_line_connected()
 {
     // 1. 发送一个短心跳帧或握手帧
-    send_heartbeat();
+    send_handshake();
 
     // 2. 等待 ACK 超时
     uint32_t start_tick = xTaskGetTickCount();

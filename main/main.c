@@ -25,7 +25,7 @@ static unsigned short year;
  */
 void app_main(void)
 {
-    
+
     esp_err_t ret;
 
     ret = nvs_flash_init(); /* 初始化NVS */
@@ -40,7 +40,7 @@ void app_main(void)
     iic_init(I2C_NUM_0); /* 初始化IIC0 */
     iic_init(I2C_NUM_1); /* 初始化IIC1 */
     usart_init(115200);  /* 初始化串口 */
-    adc_init();        /* 初始化ADC */
+    adc_init();          /* 初始化ADC */
 
     // // 2. 配置 ADS1115
     // ads1115_t ads = ads1115_config(I2C_NUM_1, ADS1115_ADDR);
@@ -56,7 +56,7 @@ void app_main(void)
 
     nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle); // 打开 NVS 命名空间
 
-    load_date_from_storage(ret,my_handle); // 2. 从 NVS 加载日期，如果不存在则使用默认值
+    load_date_from_storage(ret, my_handle); // 2. 从 NVS 加载日期，如果不存在则使用默认值
     nvs_close(my_handle);
 
     // for (int addr = 1; addr < 127; addr++)
@@ -89,38 +89,21 @@ void app_main(void)
 
     while (1)
     {
-        if (check_line_connected()) // 自定义函数：尝试发送心跳或握手帧 + 超时判断
-            current_state = PROBE_CONNECTED;
-        else
-            current_state = PROBE_DISCONNECTED;
-
-        // --- 2. 根据状态组合处理 ---
-        if (last_state == PROBE_DISCONNECTED && current_state == PROBE_CONNECTED)
+        if (current_state == PROBE_CONNECTED)
         {
-            // 之前没连，现在连上了
-            last_state = current_state;
-            send_handshake(); // 首次通信
-        }
-        else if (last_state == PROBE_CONNECTED && current_state == PROBE_DISCONNECTED)
-        {
-            // 之前连了，现在断开
-            last_state = current_state;
-        }
-        else if (last_state == PROBE_CONNECTED && current_state == PROBE_CONNECTED)
-        {
-            // 连续已连 → 发送周期数据
             float temperature = tmp102_read_temperature();
             float volt = 1;
             uint16_t adcdata;
             adcdata = adc_get_result_average(ADC_ADCX_CHY, 20);
             volt = (float)adcdata * (3.3 / 4095);
+            // ESP_LOGI("ADC", "ADC Data: %d Voltage: %.2f V", adcdata, volt);
 
-
-            // float volt = ads1115_get_voltage(&ads);
-            ESP_LOGI("TMP102", "Temperature = %.2f °C Volt = %.2f V", temperature, volt);
             send_probe_data(temperature, volt);
         }
-        // 未连 + 未连 → 什么都不做
+        else
+        {
+            check_line_connected();
+        }
 
         vTaskDelay(500);
     }

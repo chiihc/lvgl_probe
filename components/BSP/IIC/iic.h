@@ -52,7 +52,7 @@ extern i2c_obj_t iic_master[I2C_NUM_MAX];
 #define IIC0_SCL_GPIO_PIN               GPIO_NUM_42                                                     /* IIC0_SCL引脚 */
 #define IIC1_SDA_GPIO_PIN               GPIO_NUM_5                                                      /* IIC1_SDA引脚 */
 #define IIC1_SCL_GPIO_PIN               GPIO_NUM_4                                                      /* IIC1_SCL引脚 */
-#define IIC_FREQ                        400000                                                          /* IIC通信频率 */
+#define IIC_FREQ                        100000                                                          /* IIC通信频率 */
 #define I2C_MASTER_TX_BUF_DISABLE       0                                                               /* I2C主机不需要缓冲区 */
 #define I2C_MASTER_RX_BUF_DISABLE       0                                                               /* I2C主机不需要缓冲区 */
 #define ACK_CHECK_EN                    0x1                                                             /* I2C master将从slave检查ACK */
