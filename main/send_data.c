@@ -47,7 +47,7 @@ void send_probe_data(float temperature, float light)
     frame[idx++] = 0xAA; // 固定帧头，用于主机解析起始位置
 
     // --- 2. 长度字节 ---
-    frame[idx++] = 1 + 1 + 1 + 8; //  Payload(8)
+    frame[idx++] =  1+8; //  Cmd(1)+Payload(8)
 
     // --- 3. Cmd 指令码 ---
     frame[idx++] = 0x01; // Cmd=0x01 表示普通数据包
@@ -59,7 +59,7 @@ void send_probe_data(float temperature, float light)
     idx += sizeof(float);
 
     // --- 5. CRC-16 校验 ---
-    uint16_t crc = calc_crc16(&frame[1], idx - 1); // 不包括帧头
+    uint16_t crc = calc_crc16(&frame[2], idx - 2); // 不包括帧头
     frame[idx++] = crc & 0xFF;                     // CRC低字节
     frame[idx++] = (crc >> 8) & 0xFF;              // CRC高字节
 
@@ -71,24 +71,23 @@ void send_probe_data(float temperature, float light)
     uart_write_bytes(USART_UX, (const char *)frame, idx);
 }
 
-void send_heartbeat()
-{
-    uint8_t frame[1 + 1 + 1 + 2 + 1]; // Header + Length + Cmd + CRC16
-    uint8_t idx = 0;
-    frame[idx++] = 0xAA;
-    frame[idx++] = 3; // 1 + 1 + 1
-    frame[idx++] = 0x10;
-    uint16_t crc = calc_crc16(&frame[1], idx - 1);
-    frame[idx++] = crc & 0xFF;
-    frame[idx++] = (crc >> 8) & 0xFF;
-    frame[idx++] = 0x00;
-
-    uart_write_bytes(USART_UX, (const char *)frame, idx);
-}
+// void send_heartbeat()
+// {
+//     uint8_t frame[1 + 1 + 1 + 2 + 1]; // Header + Length + Cmd + CRC16
+//     uint8_t idx = 0;
+//     frame[idx++] = 0xAA;
+//     frame[idx++] = 3; // 1 + 1 + 1
+//     frame[idx++] = 0x10;
+//     uint16_t crc = calc_crc16(&frame[1], idx - 1);
+//     frame[idx++] = crc & 0xFF;
+//     frame[idx++] = (crc >> 8) & 0xFF;
+//     frame[idx++] = 0x00;
+//     uart_write_bytes(USART_UX, (const char *)frame, idx);
+// }
 
 bool check_line_connected()
 {
-    // 1. 发送一个短心跳帧或握手帧
+    // 1. 发送握手帧
     send_handshake();
 
     // 2. 等待 ACK 超时
@@ -119,7 +118,7 @@ void send_handshake()
     frame[idx++] = 0xAA;
 
     // --- 2. 长度字节 ---
-    frame[idx++] = 1 + 1 + 1 + probe_info_size;
+    frame[idx++] = probe_info_size+1;
 
     // --- 3. Cmd 指令码 ---
     frame[idx++] = 0x02; // Cmd=0x02 表示首次通信
@@ -130,9 +129,10 @@ void send_handshake()
     idx += probe_info_size;
 
     // --- 5. CRC-16 校验 ---
-    uint16_t crc = calc_crc16(&frame[1], idx - 1); // 不包括帧头
+    uint16_t crc = calc_crc16(&frame[2], idx - 2); // 不包括帧头
     frame[idx++] = crc & 0xFF;                     // CRC低字节
     frame[idx++] = (crc >> 8) & 0xFF;              // CRC高字节
+    ESP_LOGI("HANDSHAKE","CRC: 0x%04X",crc);
 
     // --- 6. 结束字节 ---
     frame[idx++] = 0x00;
