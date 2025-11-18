@@ -12,8 +12,7 @@ typedef enum
     PROBE_CONNECTED = 1     // 探头已连接
 } probe_state_t;
 
-static probe_state_t last_state = PROBE_DISCONNECTED;
-static probe_state_t current_state = PROBE_DISCONNECTED;
+
 
 bool check_line_connected();
 

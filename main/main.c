@@ -86,7 +86,7 @@ void app_main(void)
     //         printf("Found device at 0x%02X I2C_NUM_1\n", addr);
     //     }
     // }
-
+    static probe_state_t current_state = PROBE_DISCONNECTED;
     while (1)
     {
         if (current_state == PROBE_CONNECTED)
@@ -102,7 +102,10 @@ void app_main(void)
         }
         else
         {
-            check_line_connected();
+            if (check_line_connected())
+            {
+                current_state = PROBE_CONNECTED;
+            }
         }
 
         vTaskDelay(500);

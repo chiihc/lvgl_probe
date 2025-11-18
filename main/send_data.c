@@ -87,7 +87,6 @@ void send_probe_data(float temperature, float light)
 
 bool check_line_connected()
 {
-    // 1. 发送握手帧
     send_handshake();
 
     // 2. 等待 ACK 超时
@@ -97,6 +96,7 @@ bool check_line_connected()
         uint8_t rx;
         if (uart_read_bytes(USART_UX, &rx, 1, pdMS_TO_TICKS(10)) > 0)
         {
+            ESP_LOGI("HANDSHAKE","Received byte: 0x%02X",rx);
             if (rx == 0x55) // 假设 ACK 帧头
                 return true;
         }
@@ -104,7 +104,7 @@ bool check_line_connected()
     return false;
 }
 
-// 暂时使用硬编码，后续从 NVS 读取
+
 probe_info_t probe_info;
 
 #define probe_info_size sizeof(probe_info)
@@ -132,7 +132,7 @@ void send_handshake()
     uint16_t crc = calc_crc16(&frame[2], idx - 2); // 不包括帧头
     frame[idx++] = crc & 0xFF;                     // CRC低字节
     frame[idx++] = (crc >> 8) & 0xFF;              // CRC高字节
-    ESP_LOGI("HANDSHAKE","CRC: 0x%04X",crc);
+    // ESP_LOGI("HANDSHAKE","CRC: 0x%04X",crc);
 
     // --- 6. 结束字节 ---
     frame[idx++] = 0x00;
