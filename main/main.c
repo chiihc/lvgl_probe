@@ -96,6 +96,7 @@ void app_main(void)
             uint16_t adcdata;
             adcdata = adc_get_result_average(ADC_ADCX_CHY, 20);
             volt = (float)adcdata * (3.3 / 4095);
+            
             // ESP_LOGI("ADC", "ADC Data: %d Voltage: %.2f V", adcdata, volt);
 
             send_probe_data(temperature, volt);
